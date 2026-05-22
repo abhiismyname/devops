@@ -20,37 +20,31 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '🐳 Building Docker image...'
-                sh 'docker build -t ${IMAGE_NAME}:latest .'
+                bat 'docker build -t %IMAGE_NAME%:latest .'
             }
         }
 
         stage('Stop Old Container') {
             steps {
                 echo '🛑 Stopping and removing old container (if running)...'
-                sh '''
-                    docker stop ${CONTAINER_NAME} || true
-                    docker rm   ${CONTAINER_NAME} || true
+                bat '''
+                    docker stop %CONTAINER_NAME% || exit /b 0
+                    docker rm %CONTAINER_NAME% || exit /b 0
                 '''
             }
         }
 
         stage('Run New Container') {
             steps {
-                echo '🚀 Starting new container on port ${HOST_PORT}...'
-                sh '''
-                    docker run -d \
-                        --name ${CONTAINER_NAME} \
-                        -p ${HOST_PORT}:${CONTAINER_PORT} \
-                        --restart unless-stopped \
-                        ${IMAGE_NAME}:latest
-                '''
+                echo '🚀 Starting new container on port 3000...'
+                bat 'docker run -d --name %CONTAINER_NAME% -p %HOST_PORT%:%CONTAINER_PORT% --restart unless-stopped %IMAGE_NAME%:latest'
             }
         }
 
         stage('Health Check') {
             steps {
                 echo '✅ Verifying container is running...'
-                sh 'docker ps | grep ${CONTAINER_NAME}'
+                bat 'docker ps | findstr %CONTAINER_NAME%'
             }
         }
     }
@@ -64,7 +58,7 @@ pipeline {
         }
         always {
             echo '🧹 Cleaning up dangling Docker images...'
-            sh 'docker image prune -f || true'
+            bat 'docker image prune -f || exit /b 0'
         }
     }
 }
